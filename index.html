@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1620">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Кошелёк — Аргентос и свита</title>
+<style>
+  :root{
+    --bg:#0a1620;
+    --panel:#12202e;
+    --panel2:#16283a;
+    --line:#274257;
+    --ink:#e8f2f8;
+    --dim:#8fb0c4;
+    --accent:#57c6e8;
+    --accent2:#bfe9ff;
+    --good:#7ee0a6;
+    --bad:#f08a8a;
+    --gold:#e8c877;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif;
+    font-size:15px;
+    line-height:1.4;
+    padding-bottom:78px;
+  }
+  header{
+    position:sticky;top:0;z-index:10;
+    background:linear-gradient(180deg,#0d1b27,#0a1620);
+    border-bottom:1px solid var(--line);
+    padding:12px 14px 10px;
+    padding-top:calc(12px + env(safe-area-inset-top));
+  }
+  header h1{font-size:16px;margin:0;font-weight:600;}
+  header .sub{font-size:11.5px;color:var(--dim);margin-top:2px;}
+  main{padding:12px 12px 20px;max-width:640px;margin:0 auto;}
+  section.tab{display:none;}
+  section.tab.active{display:block;animation:fade .15s ease;}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin:16px 0 8px;}
+  h2:first-child{margin-top:4px;}
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px;
+    margin-bottom:10px;
+  }
+  .card .top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px;}
+  .card .name{font-weight:600;font-size:15px;}
+  .card .role{font-size:11px;color:var(--dim);}
+  .card .total{font-size:12px;color:var(--gold);white-space:nowrap;}
+  .coins{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+  .coins label{display:block;font-size:10.5px;color:var(--dim);text-align:center;margin-bottom:2px;}
+  input,textarea,select{
+    width:100%;
+    background:var(--panel2);
+    border:1px solid var(--line);
+    border-radius:8px;
+    color:var(--ink);
+    font:inherit;
+    font-size:14px;
+    padding:8px 9px;
+  }
+  input:focus,textarea:focus,select:focus{outline:none;border-color:var(--accent);}
+  input[inputmode=numeric]{text-align:center;}
+  textarea{resize:vertical;min-height:38px;}
+  .inline{display:flex;gap:8px;align-items:center;margin-top:8px;}
+  .inline > span{font-size:12px;color:var(--dim);white-space:nowrap;}
+  .field{margin-bottom:8px;}
+  .field label{display:block;font-size:11.5px;color:var(--dim);margin-bottom:3px;}
+  .hint{font-size:11px;color:var(--dim);margin-top:4px;}
+  .computed{font-size:13px;color:var(--ink);}
+  .computed b{color:var(--accent2);}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    border-radius:9px;padding:9px 12px;font:inherit;font-size:13.5px;cursor:pointer;
+  }
+  .btn.primary{background:linear-gradient(180deg,#2b6f8c,#1f556e);border-color:#3d90b3;}
+  .btn.small{padding:6px 10px;font-size:12.5px;}
+  .btn.danger{color:var(--bad);border-color:#5a2d2d;}
+  .btn.block{width:100%;}
+  .rowhead{display:flex;justify-content:space-between;align-items:center;margin:14px 0 8px;}
+  .rowhead h2{margin:0;}
+  table{width:100%;border-collapse:collapse;}
+  th,td{border-bottom:1px solid var(--line);padding:6px 4px;font-size:12.5px;text-align:left;vertical-align:middle;}
+  th{color:var(--dim);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+  td input{padding:6px 7px;font-size:13px;background:transparent;border:none;border-bottom:1px dashed var(--line);border-radius:0;}
+  td input:focus{border-bottom-color:var(--accent);}
+  .del{background:none;border:none;color:var(--bad);font-size:18px;cursor:pointer;padding:2px 6px;line-height:1;}
+  .totrow td{color:var(--dim);font-size:12px;}
+  .totrow b{color:var(--accent2);}
+  .note-empty{color:var(--dim);font-size:13px;padding:8px 2px;}
+  nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:10;
+    display:flex;background:#0d1b27;border-top:1px solid var(--line);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  nav button{
+    flex:1;background:none;border:none;color:var(--dim);
+    font:inherit;font-size:10.5px;padding:8px 2px 9px;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  nav button .ic{font-size:18px;line-height:1;}
+  nav button.active{color:var(--accent2);}
+  .toast{
+    position:fixed;left:50%;bottom:92px;transform:translateX(-50%);
+    background:#1d3b4d;border:1px solid var(--accent);color:var(--ink);
+    padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;pointer-events:none;
+    transition:opacity .2s;z-index:20;
+  }
+  .toast.show{opacity:1;}
+  .warn{background:#2a1e12;border-color:#6a4a22;color:#f0cf9a;}
+  @media print{
+    :root{--bg:#fff;--panel:#fff;--panel2:#fff;--line:#888;--ink:#000;--dim:#444;--accent:#000;--accent2:#000;--gold:#000;}
+    header,nav,.no-print{display:none !important;}
+    body{background:#fff;color:#000;padding:0;font-size:11px;}
+    main{max-width:none;padding:0;}
+    section.tab{display:block !important;}
+    .card{break-inside:avoid;page-break-inside:avoid;}
+    @page{size:A4 portrait;margin:12mm;}
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Кошелёк — Аргентос и свита</h1>
+  <div class="sub" id="stamp">D&amp;D 5e · кампания «Серебряный Рассвет»</div>
+</header>
+
+<main>
+  <section class="tab active" id="tab-wallets">
+    <h2>Кошельки · итого <span id="grand">≈ 0 зм</span></h2>
+    <div id="wallets"></div>
+  </section>
+
+  <section class="tab" id="tab-lk">
+    <h2>ЛК — топливо Фроствинга</h2>
+    <div class="card">
+      <div class="field">
+        <label>Запас всего, ЛК</label>
+        <input inputmode="numeric" data-lk="stock" placeholder="0">
+      </div>
+      <div class="field">
+        <label>Израсходовано перелётов, КП</label>
+        <input inputmode="numeric" data-lk="kp" placeholder="0">
+      </div>
+      <div class="computed" id="lk-calc"></div>
+      <div class="field" style="margin-top:10px">
+        <label>У кого хранится</label>
+        <input data-lk="holder" placeholder="напр. у Аргентоса / у Веррака">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Заметка (перелёты, планы)</label>
+        <textarea data-lk="note" rows="2"></textarea>
+      </div>
+      <div class="hint">Расход дрейка — 5 ЛК за 1 КП космического перемещения.</div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-treasures">
+    <div class="rowhead">
+      <h2>Драгоценности и искусство</h2>
+      <button class="btn small" data-add="treasures">+ строка</button>
+    </div>
+    <div class="card">
+      <table id="treasures"><thead>
+        <tr><th>Предмет</th><th style="width:26%">Оценка, зм</th><th style="width:24%">У кого</th><th style="width:30px"></th></tr>
+      </thead><tbody></tbody>
+      <tfoot></tfoot></table>
+    </div>
+
+    <div class="rowhead">
+      <h2>Магические предметы и свитки</h2>
+      <button class="btn small" data-add="magic">+ строка</button>
+    </div>
+    <div class="card">
+      <table id="magic"><thead>
+        <tr><th>Предмет</th><th style="width:40%">Эффект / редкость</th><th style="width:22%">У кого</th><th style="width:30px"></th></tr>
+      </thead><tbody></tbody></table>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-journal">
+    <div class="rowhead">
+      <h2>Журнал операций</h2>
+      <button class="btn small" data-add="journal">+ строка</button>
+    </div>
+    <div class="card">
+      <table id="journal"><thead>
+        <tr><th style="width:22%">Дата</th><th>Описание</th><th style="width:17%">Приход</th><th style="width:17%">Расход</th><th style="width:20%">Кому/от кого</th><th style="width:30px"></th></tr>
+      </thead><tbody></tbody>
+      <tfoot></tfoot></table>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-data">
+    <h2>Данные</h2>
+    <div class="card">
+      <button class="btn primary block" id="install" style="display:none">Установить на главный экран</button>
+      <button class="btn block" id="print" style="margin-top:8px">Печать / PDF</button>
+      <button class="btn block" id="export" style="margin-top:8px">Экспорт в файл (JSON)</button>
+      <label class="btn block" for="importfile" style="margin-top:8px">Импорт из файла</label>
+      <input type="file" id="importfile" accept="application/json,.json" style="display:none">
+      <button class="btn block danger" id="reset" style="margin-top:8px">Сбросить всё</button>
+    </div>
+    <div class="card warn">
+      <b>Установка на Android</b>
+      <div class="hint" style="color:inherit">
+        Открой приложение в Chrome → меню «⋮» → «Установить приложение» / «Добавить на главный экран».
+        Приложение работает офлайн, данные хранятся только на этом устройстве.
+      </div>
+    </div>
+    <div class="card">
+      <div class="hint">Данные хранятся в памяти браузера. Делай «Экспорт», чтобы не потерять их при очистке данных или смене телефона.</div>
+    </div>
+  </section>
+</main>
+
+<nav>
+  <button data-tab="wallets" class="active"><span class="ic">👝</span>Кошельки</button>
+  <button data-tab="lk"><span class="ic">💎</span>ЛК</button>
+  <button data-tab="treasures"><span class="ic">🏆</span>Ценности</button>
+  <button data-tab="journal"><span class="ic">📜</span>Журнал</button>
+  <button data-tab="data"><span class="ic">⚙️</span>Данные</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const KEY="argentos-wallet-v2";
+const COINS=[["mm","мм"],["sm","см"],["em","эм"],["zm","зм"],["pm","пм"]];
+const LK_PER_KP=5;
+function def(){
+  return {
+    wallets:[
+      {id:"argentos",name:"Аргентос Серебряный Рассвет",role:"носит сам",coins:{mm:0,sm:0,em:0,zm:0,pm:0},lk:0,note:""},
+      {id:"verrak",name:"Веррак",role:"интендант · финансы и торговля",coins:{mm:0,sm:0,em:0,zm:0,pm:0},lk:0,note:""},
+      {id:"brunhilda",name:"Брунхильда «Бруни»",role:"оруженосец · снаряжение",coins:{mm:0,sm:0,em:0,zm:0,pm:0},lk:0,note:""},
+      {id:"liata",name:"Лиата Зеленокосая",role:"конюх · уход за Фроствингом",coins:{mm:0,sm:0,em:0,zm:0,pm:0},lk:0,note:""}
+    ],
+    lk:{stock:0,kp:0,holder:"",note:""},
+    treasures:[],magic:[],journal:[]
+  };
+}
+let state=load();
+function load(){
+  try{const r=localStorage.getItem(KEY);if(r){const s=JSON.parse(r);const d=def();s.wallets=s.wallets||d.wallets;s.lk=Object.assign(d.lk,s.lk||{});s.treasures=s.treasures||[];s.magic=s.magic||[];s.journal=s.journal||[];return s;}}catch(e){}
+  return def();
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
+function num(v){const n=parseFloat(String(v).replace(",","."));return isFinite(n)?n:0;}
+function zmOf(c){return num(c.mm)/100+num(c.sm)/10+num(c.em)/2+num(c.zm)+num(c.pm)*10;}
+function fmt(n){return (Math.round(n*100)/100).toLocaleString("ru-RU");}
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
+
+function renderWallets(){
+  const box=document.getElementById("wallets");
+  box.innerHTML=state.wallets.map(w=>`
+    <div class="card" data-wid="${w.id}">
+      <div class="top">
+        <div>
+          <div class="name">${esc(w.name)}</div>
+          <div class="role">${esc(w.role)}</div>
+        </div>
+        <div class="total" data-total="${w.id}">≈ ${fmt(zmOf(w.coins))} зм</div>
+      </div>
+      <div class="coins">
+        ${COINS.map(([k,lab])=>`<div><label>${lab}</label><input inputmode="numeric" data-w="${w.id}" data-c="${k}" value="${num(w.coins[k])?esc(w.coins[k]):""}" placeholder="0"></div>`).join("")}
+      </div>
+      <div class="inline">
+        <span>ЛК:</span>
+        <input inputmode="numeric" data-w="${w.id}" data-c="lk" value="${num(w.lk)?esc(w.lk):""}" placeholder="0" style="max-width:90px">
+      </div>
+      <div class="field" style="margin:8px 0 0">
+        <textarea data-w="${w.id}" data-c="note" rows="1" placeholder="Примечание">${esc(w.note)}</textarea>
+      </div>
+    </div>`).join("");
+  updateGrand();
+}
+function updateWalletTotal(id){
+  const w=state.wallets.find(x=>x.id===id);
+  if(!w)return;
+  const t=document.querySelector('[data-total="'+id+'"]');
+  if(t)t.textContent="≈ "+fmt(zmOf(w.coins))+" зм";
+  updateGrand();
+}
+function updateGrand(){
+  const sum=state.wallets.reduce((a,w)=>a+zmOf(w.coins),0);
+  document.getElementById("grand").textContent="≈ "+fmt(sum)+" зм";
+}
+function updateLK(){
+  const s=num(state.lk.stock),kp=num(state.lk.kp);
+  const spent=kp*LK_PER_KP, rest=s-spent;
+  const el=document.getElementById("lk-calc");
+  el.innerHTML=`Израсходовано: <b>${fmt(spent)} ЛК</b> (${fmt(kp)} × ${LK_PER_KP}) &nbsp;·&nbsp; Остаток: <b style="color:${rest<0?'var(--bad)':'var(--good)'}">${fmt(rest)} ЛК</b>`;
+}
+function renderTable(name){
+  const rows=state[name];
+  const tb=document.querySelector("#"+name+" tbody");
+  const tf=document.querySelector("#"+name+" tfoot");
+  if(name==="treasures"){
+    tb.innerHTML=rows.map((r,i)=>`<tr>
+      <td><input data-tbl="treasures" data-idx="${i}" data-f="item" value="${esc(r.item)}"></td>
+      <td><input inputmode="numeric" data-tbl="treasures" data-idx="${i}" data-f="value" value="${esc(r.value)}"></td>
+      <td><input data-tbl="treasures" data-idx="${i}" data-f="owner" value="${esc(r.owner)}"></td>
+      <td><button class="del" data-del="treasures" data-idx="${i}">×</button></td></tr>`).join("");
+    const tot=rows.reduce((a,r)=>a+num(r.value),0);
+    tf.innerHTML=`<tr class="totrow"><td>Итого</td><td><b>${fmt(tot)} зм</b></td><td></td><td></td></tr>`;
+  }else if(name==="magic"){
+    tb.innerHTML=rows.map((r,i)=>`<tr>
+      <td><input data-tbl="magic" data-idx="${i}" data-f="item" value="${esc(r.item)}"></td>
+      <td><input data-tbl="magic" data-idx="${i}" data-f="effect" value="${esc(r.effect)}"></td>
+      <td><input data-tbl="magic" data-idx="${i}" data-f="owner" value="${esc(r.owner)}"></td>
+      <td><button class="del" data-del="magic" data-idx="${i}">×</button></td></tr>`).join("");
+    tf.innerHTML="";
+  }else{
+    tb.innerHTML=rows.map((r,i)=>`<tr>
+      <td><input data-tbl="journal" data-idx="${i}" data-f="date" value="${esc(r.date)}"></td>
+      <td><input data-tbl="journal" data-idx="${i}" data-f="desc" value="${esc(r.desc)}"></td>
+      <td><input inputmode="numeric" data-tbl="journal" data-idx="${i}" data-f="income" value="${esc(r.income)}"></td>
+      <td><input inputmode="numeric" data-tbl="journal" data-idx="${i}" data-f="expense" value="${esc(r.expense)}"></td>
+      <td><input data-tbl="journal" data-idx="${i}" data-f="who" value="${esc(r.who)}"></td>
+      <td><button class="del" data-del="journal" data-idx="${i}">×</button></td></tr>`).join("");
+    const inc=rows.reduce((a,r)=>a+num(r.income),0),exp=rows.reduce((a,r)=>a+num(r.expense),0);
+    tf.innerHTML=`<tr class="totrow"><td>Итого</td><td></td><td><b style="color:var(--good)">+${fmt(inc)}</b></td><td><b style="color:var(--bad)">−${fmt(exp)}</b></td><td></td><td></td></tr>`;
+  }
+}
+function updateTotals(name){
+  const rows=state[name];
+  const tf=document.querySelector("#"+name+" tfoot");
+  if(!tf)return;
+  if(name==="treasures"){
+    const tot=rows.reduce((a,r)=>a+num(r.value),0);
+    tf.innerHTML=`<tr class="totrow"><td>Итого</td><td><b>${fmt(tot)} зм</b></td><td></td><td></td></tr>`;
+  }else if(name==="journal"){
+    const inc=rows.reduce((a,r)=>a+num(r.income),0),exp=rows.reduce((a,r)=>a+num(r.expense),0);
+    tf.innerHTML=`<tr class="totrow"><td>Итого</td><td></td><td><b style="color:var(--good)">+${fmt(inc)}</b></td><td><b style="color:var(--bad)">−${fmt(exp)}</b></td><td></td><td></td></tr>`;
+  }
+}
+function renderLKFields(){
+  document.querySelectorAll("[data-lk]").forEach(inp=>{
+    const f=inp.dataset.lk;
+    inp.value=(f==="stock"||f==="kp")?(num(state.lk[f])?state.lk[f]:""):(state.lk[f]||"");
+  });
+  updateLK();
+}
+function renderAll(){
+  renderWallets();renderLKFields();renderTable("treasures");renderTable("magic");renderTable("journal");
+}
+function toast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),1600);
+}
+
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset.w){
+    const w=state.wallets.find(x=>x.id===t.dataset.w);if(!w)return;
+    const c=t.dataset.c;
+    if(c==="note")w.note=t.value;
+    else if(c==="lk"){w.lk=t.value;updateWalletTotal(w.id);}
+    else {w.coins[c]=t.value;updateWalletTotal(w.id);}
+    save();
+  }else if(t.dataset.lk){
+    state.lk[t.dataset.lk]=t.value;updateLK();save();
+  }else if(t.dataset.tbl){
+    const arr=state[t.dataset.tbl];const r=arr[+t.dataset.idx];if(!r)return;
+    r[t.dataset.f]=t.value;
+    if(t.dataset.tbl==="treasures"||t.dataset.tbl==="journal")updateTotals(t.dataset.tbl);
+    save();
+  }
+});
+document.addEventListener("click",e=>{
+  const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.tab){switchTab(b.dataset.tab);return;}
+  if(b.dataset.add){
+    const n=b.dataset.add;
+    if(n==="treasures")state.treasures.push({item:"",value:"",owner:""});
+    if(n==="magic")state.magic.push({item:"",effect:"",owner:""});
+    if(n==="journal")state.journal.push({date:"",desc:"",income:"",expense:"",who:""});
+    renderTable(n);save();return;
+  }
+  if(b.dataset.del){
+    state[b.dataset.del].splice(+b.dataset.idx,1);renderTable(b.dataset.del);save();return;
+  }
+});
+function switchTab(id){
+  document.querySelectorAll("section.tab").forEach(s=>s.classList.toggle("active",s.id==="tab-"+id));
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.tab===id));
+  window.scrollTo({top:0});
+}
+
+document.getElementById("print").addEventListener("click",()=>window.print());
+document.getElementById("export").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="koshelek-argentos-"+new Date().toISOString().slice(0,10)+".json";
+  a.click();URL.revokeObjectURL(a.href);toast("Файл сохранён");
+});
+document.getElementById("importfile").addEventListener("change",e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{state=JSON.parse(r.result);const d=def();state.wallets=state.wallets||d.wallets;state.lk=Object.assign(d.lk,state.lk||{});state.treasures=state.treasures||[];state.magic=state.magic||[];state.journal=state.journal||[];save();renderAll();toast("Импортировано");}catch(err){toast("Ошибка файла");}};
+  r.readAsText(f);e.target.value="";
+});
+document.getElementById("reset").addEventListener("click",()=>{
+  if(confirm("Сбросить все данные кошелька?")){state=def();save();renderAll();toast("Сброшено");}
+});
+
+let deferred=null;
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();deferred=e;document.getElementById("install").style.display="flex";
+});
+document.getElementById("install").addEventListener("click",async()=>{
+  if(!deferred)return;deferred.prompt();await deferred.userChoice;deferred=null;
+  document.getElementById("install").style.display="none";
+});
+if("serviceWorker" in navigator){
+  window.addEventListener("load",()=>{
+    if(location.protocol==="https:"||location.hostname==="localhost"||location.hostname==="127.0.0.1"){
+      navigator.serviceWorker.register("sw.js").catch(()=>{});
+    }
+  });
+}
+document.getElementById("stamp").textContent="D&D 5e · сохранено "+new Date().toLocaleString("ru-RU");
+renderAll();
+</script>
+</body>
+</html>
