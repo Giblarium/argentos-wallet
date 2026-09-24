@@ -1,4 +1,4 @@
-const CACHE = "argentos-wallet-v3";
+const CACHE = "argentos-wallet-v4";
 const ASSETS = [
   "./",
   "./index.html",

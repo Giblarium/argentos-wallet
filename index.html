@@ -61,7 +61,7 @@
   .card .name{font-weight:600;font-size:15px;}
   .card .role{font-size:11px;color:var(--dim);}
   .card .total{font-size:12px;color:var(--gold);white-space:nowrap;}
-  .coins{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+  .coins{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
   .coins label{display:block;font-size:10.5px;color:var(--dim);text-align:center;margin-bottom:2px;}
   input,textarea,select{
     width:100%;
@@ -225,7 +225,7 @@
     <div class="card">
       <table id="magic"><thead>
         <tr><th>Предмет</th><th style="width:40%">Эффект / редкость</th><th style="width:22%">У кого</th><th style="width:30px"></th></tr>
-      </thead><tbody></tbody></table>
+      </thead><tbody></tbody><tfoot></tfoot></table>
     </div>
   </section>
 
@@ -294,8 +294,6 @@
           <option value="zm">зм</option>
           <option value="sm">см</option>
           <option value="mm">мм</option>
-          <option value="em">эм</option>
-          <option value="pm">пм</option>
           <option value="lk">ЛК</option>
         </select>
       </div>
@@ -321,15 +319,15 @@
 
 <script>
 const KEY="argentos-wallet-v2";
-const COINS=[["mm","мм"],["sm","см"],["em","эм"],["zm","зм"],["pm","пм"]];
+const COINS=[["mm","мм"],["sm","см"],["zm","зм"]];
 const LK_PER_KP=5;
 function def(){
   return {
     wallets:[
-      {id:"argentos",name:"Аргентос Серебряный Рассвет",role:"носит сам",coins:{mm:0,sm:0,em:0,zm:0,pm:0},lk:0,note:""},
-      {id:"verrak",name:"Веррак",role:"интендант · финансы и торговля",coins:{mm:0,sm:0,em:0,zm:0,pm:0},lk:0,note:""},
-      {id:"brunhilda",name:"Брунхильда «Бруни»",role:"оруженосец · снаряжение",coins:{mm:0,sm:0,em:0,zm:0,pm:0},lk:0,note:""},
-      {id:"liata",name:"Лиата Зеленокосая",role:"конюх · уход за Фроствингом",coins:{mm:0,sm:0,em:0,zm:0,pm:0},lk:0,note:""}
+      {id:"argentos",name:"Аргентос Серебряный Рассвет",role:"носит сам",coins:{mm:0,sm:0,zm:0},lk:0,note:""},
+      {id:"verrak",name:"Веррак",role:"интендант · финансы и торговля",coins:{mm:0,sm:0,zm:0},lk:0,note:""},
+      {id:"brunhilda",name:"Брунхильда «Бруни»",role:"оруженосец · снаряжение",coins:{mm:0,sm:0,zm:0},lk:0,note:""},
+      {id:"liata",name:"Лиата Зеленокосая",role:"конюх · уход за Фроствингом",coins:{mm:0,sm:0,zm:0},lk:0,note:""}
     ],
     lk:{stock:0,kp:0,holder:"",note:""},
     treasures:[],magic:[],journal:[]
@@ -342,7 +340,7 @@ function load(){
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){}}
 function num(v){const n=parseFloat(String(v).replace(",","."));return isFinite(n)?n:0;}
-function zmOf(c){return num(c.mm)/100+num(c.sm)/10+num(c.em)/2+num(c.zm)+num(c.pm)*10;}
+function zmOf(c){return num(c.mm)/100+num(c.sm)/10+num(c.zm);}
 function fmt(n){return (Math.round(n*100)/100).toLocaleString("ru-RU");}
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));}
 
@@ -390,7 +388,7 @@ function updateLK(){
 function renderTable(name){
   const rows=state[name];
   const tb=document.querySelector("#"+name+" tbody");
-  const tf=document.querySelector("#"+name+" tfoot");
+  const tf=document.querySelector("#"+name+" tfoot")||{innerHTML:""};
   if(name==="treasures"){
     tb.innerHTML=rows.map((r,i)=>`<tr>
       <td><input data-tbl="treasures" data-idx="${i}" data-f="item" value="${esc(r.item)}"></td>
