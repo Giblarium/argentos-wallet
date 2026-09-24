@@ -123,6 +123,42 @@
   }
   .toast.show{opacity:1;}
   .warn{background:#2a1e12;border-color:#6a4a22;color:#f0cf9a;}
+  body.lock{overflow:hidden;}
+  .fab{
+    position:fixed;right:16px;z-index:15;
+    bottom:calc(72px + env(safe-area-inset-bottom));
+    width:58px;height:58px;border-radius:50%;border:none;cursor:pointer;
+    background:linear-gradient(180deg,#3d9ec4,#2b6f8c);color:#fff;
+    font-size:32px;line-height:1;font-weight:300;
+    box-shadow:0 6px 18px rgba(0,0,0,.5);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .fab:active{transform:scale(.95);}
+  .overlay{
+    position:fixed;inset:0;z-index:30;background:rgba(0,0,0,.55);
+    display:none;align-items:flex-end;justify-content:center;
+  }
+  .overlay.open{display:flex;}
+  .sheet{
+    width:100%;max-width:640px;background:var(--panel);
+    border-radius:16px 16px 0 0;border:1px solid var(--line);border-bottom:none;
+    padding:16px 14px calc(16px + env(safe-area-inset-bottom));
+    max-height:92vh;overflow:auto;animation:slideUp .18s ease;
+  }
+  @keyframes slideUp{from{transform:translateY(26px);opacity:.4}to{transform:none;opacity:1}}
+  .sh-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .sh-head .t{font-weight:600;font-size:16px;}
+  .sh-head .x{background:none;border:none;color:var(--dim);font-size:28px;line-height:1;cursor:pointer;padding:0 4px;}
+  .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
+  .seg button{
+    background:var(--panel2);border:1px solid var(--line);color:var(--dim);
+    border-radius:10px;padding:11px 4px;font:inherit;font-size:13px;cursor:pointer;
+  }
+  .seg button.active{background:linear-gradient(180deg,#2b6f8c,#1f556e);border-color:#3d90b3;color:#fff;}
+  .seg button.active[data-opt="expense"]{background:linear-gradient(180deg,#93413f,#6e2422);border-color:#c05856;}
+  .seg button.active[data-opt="income"]{background:linear-gradient(180deg,#2f7d52,#1f5e3c);border-color:#3da86f;}
+  .amount-row{display:grid;grid-template-columns:1fr 96px;gap:8px;}
+  .amount-row input{font-size:18px;font-weight:600;text-align:right;}
   @media print{
     :root{--bg:#fff;--panel:#fff;--panel2:#fff;--line:#888;--ink:#000;--dim:#444;--accent:#000;--accent2:#000;--gold:#000;}
     header,nav,.no-print{display:none !important;}
@@ -236,6 +272,50 @@
   <button data-tab="journal"><span class="ic">📜</span>Журнал</button>
   <button data-tab="data"><span class="ic">⚙️</span>Данные</button>
 </nav>
+
+<button class="fab no-print" id="fab" aria-label="Новая операция">＋</button>
+
+<div class="overlay no-print" id="opOverlay">
+  <div class="sheet" role="dialog" aria-modal="true" aria-label="Новая операция">
+    <div class="sh-head">
+      <div class="t">Новая операция</div>
+      <button class="x" id="opClose" aria-label="Закрыть">×</button>
+    </div>
+    <div class="seg" id="opType">
+      <button data-opt="expense" class="active">− Расход</button>
+      <button data-opt="income">+ Доход</button>
+      <button data-opt="transfer">⇄ Перемещение</button>
+    </div>
+    <div class="field">
+      <label>Сумма</label>
+      <div class="amount-row">
+        <input id="opAmount" inputmode="decimal" placeholder="0" autocomplete="off">
+        <select id="opCoin">
+          <option value="zm">зм</option>
+          <option value="sm">см</option>
+          <option value="mm">мм</option>
+          <option value="em">эм</option>
+          <option value="pm">пм</option>
+          <option value="lk">ЛК</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" id="opFromWrap">
+      <label id="opFromLabel">У кого (списать)</label>
+      <select id="opFrom"></select>
+    </div>
+    <div class="field" id="opToWrap" style="display:none">
+      <label id="opToLabel">Кому (зачислить)</label>
+      <select id="opTo"></select>
+    </div>
+    <div class="field">
+      <label>Комментарий</label>
+      <input id="opNote" placeholder="напр. покупка припасов" autocomplete="off">
+    </div>
+    <button class="btn primary block" id="opApply" style="padding:13px">Записать</button>
+    <button class="btn block" id="opCancel" style="margin-top:8px">Отмена</button>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -358,7 +438,7 @@ function renderLKFields(){
   updateLK();
 }
 function renderAll(){
-  renderWallets();renderLKFields();renderTable("treasures");renderTable("magic");renderTable("journal");
+  renderWallets();renderLKFields();renderTable("treasures");renderTable("magic");renderTable("journal");fillWallets();
 }
 function toast(msg){
   const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
@@ -437,6 +517,74 @@ if("serviceWorker" in navigator){
   });
 }
 document.getElementById("stamp").textContent="D&D 5e · сохранено "+new Date().toLocaleString("ru-RU");
+
+const OVERLAY=document.getElementById("opOverlay");
+let opType="expense";
+function coinLabel(code){return code==="lk"?"ЛК":(COINS.find(c=>c[0]===code)||[,code])[1];}
+function fillWallets(){
+  const opts=state.wallets.map(w=>`<option value="${w.id}">${esc(w.name)}</option>`).join("");
+  const f=document.getElementById("opFrom"), t=document.getElementById("opTo");
+  if(!f)return;
+  const pf=f.value, pt=t.value;
+  f.innerHTML=opts; t.innerHTML=opts;
+  if(pf) f.value=pf;
+  if(pt) t.value=pt;
+  if(state.wallets.length>1 && t.value===f.value) t.value=state.wallets[1].id;
+}
+function setOpType(t){
+  opType=t;
+  document.querySelectorAll("#opType button").forEach(b=>b.classList.toggle("active",b.dataset.opt===t));
+  const fromW=document.getElementById("opFromWrap"), toW=document.getElementById("opToWrap");
+  if(t==="expense"){fromW.style.display="";toW.style.display="none";document.getElementById("opFromLabel").textContent="У кого (списать)";}
+  else if(t==="income"){fromW.style.display="none";toW.style.display="";document.getElementById("opToLabel").textContent="Кому (зачислить)";}
+  else{fromW.style.display="";toW.style.display="";document.getElementById("opFromLabel").textContent="Откуда (списать)";document.getElementById("opToLabel").textContent="Куда (зачислить)";}
+}
+function openOp(){
+  fillWallets(); setOpType(opType);
+  document.getElementById("opAmount").value="";
+  document.getElementById("opNote").value="";
+  OVERLAY.classList.add("open"); document.body.classList.add("lock");
+  setTimeout(()=>document.getElementById("opAmount").focus(),80);
+}
+function closeOp(){OVERLAY.classList.remove("open");document.body.classList.remove("lock");}
+function adjustCoin(id,coin,delta){
+  const w=state.wallets.find(x=>x.id===id); if(!w)return;
+  if(coin==="lk") w.lk=String(num(w.lk)+delta);
+  else w.coins[coin]=String(num(w.coins[coin])+delta);
+}
+function nameOf(id){const w=state.wallets.find(x=>x.id===id);return w?w.name:id;}
+function applyOp(){
+  const amount=num(document.getElementById("opAmount").value);
+  if(amount<=0){toast("Введите сумму");return;}
+  const coin=document.getElementById("opCoin").value;
+  const note=document.getElementById("opNote").value.trim();
+  const fromId=document.getElementById("opFrom").value;
+  const toId=document.getElementById("opTo").value;
+  const today=new Date().toISOString().slice(0,10);
+  const lab=coinLabel(coin);
+  if(opType==="transfer"){
+    if(fromId===toId){toast("Выберите разные кошельки");return;}
+    adjustCoin(fromId,coin,-amount); adjustCoin(toId,coin,amount);
+    state.journal.push({date:today,desc:note||("Перемещение "+fmt(amount)+" "+lab),income:"",expense:"",who:nameOf(fromId)+" → "+nameOf(toId)});
+  }else if(opType==="expense"){
+    adjustCoin(fromId,coin,-amount);
+    state.journal.push({date:today,desc:note||("Расход "+fmt(amount)+" "+lab),income:"",expense:String(amount),who:nameOf(fromId)});
+  }else{
+    adjustCoin(toId,coin,amount);
+    state.journal.push({date:today,desc:note||("Доход "+fmt(amount)+" "+lab),income:String(amount),expense:"",who:nameOf(toId)});
+  }
+  save(); renderAll(); closeOp(); toast("Записано в журнал");
+}
+document.getElementById("fab").addEventListener("click",openOp);
+document.getElementById("opClose").addEventListener("click",closeOp);
+document.getElementById("opCancel").addEventListener("click",closeOp);
+document.getElementById("opApply").addEventListener("click",applyOp);
+document.getElementById("opType").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-opt]"); if(b) setOpType(b.dataset.opt);
+});
+OVERLAY.addEventListener("click",e=>{if(e.target===OVERLAY)closeOp();});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&OVERLAY.classList.contains("open"))closeOp();});
+
 renderAll();
 </script>
 </body>
